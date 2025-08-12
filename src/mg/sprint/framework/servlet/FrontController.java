@@ -118,7 +118,8 @@ public class FrontController extends HttpServlet {
             resp.getWriter().println("Type de retour non reconnu : " + result.getClass().getName());
         }
     }
-    
+// import mg.sprint.framework.session.MySession;
+
     private Object[] buildMethodArguments(Method method, HttpServletRequest req) throws Exception {
         Parameter[] parameters = method.getParameters();
         Object[] args = new Object[parameters.length];
@@ -129,7 +130,10 @@ public class FrontController extends HttpServlet {
         for (int i = 0; i < parameters.length; i++) {
             Parameter param = parameters[i];
 
-            if (param.isAnnotationPresent(RequestObject.class)) {
+            if (param.getType().equals(mg.sprint.framework.session.MySession.class)) {
+                args[i] = new mg.sprint.framework.session.MySession(req.getSession());
+            }
+            else if (param.isAnnotationPresent(RequestObject.class)) {
                 Object obj = param.getType().getDeclaredConstructor().newInstance();
                 for (Field field : obj.getClass().getDeclaredFields()) {
                     String fieldName = field.getName();
@@ -143,7 +147,8 @@ public class FrontController extends HttpServlet {
                     }
                 }
                 args[i] = obj;
-            } else {
+            }
+            else {
                 String name = null;
 
                 if (param.isAnnotationPresent(RequestParam.class)) {
