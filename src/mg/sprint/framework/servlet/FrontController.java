@@ -21,15 +21,17 @@ public class FrontController extends HttpServlet {
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        
+
         String basePackage = config.getInitParameter("base-package");
+        String modelPackage = config.getInitParameter("model-package");
+
         if (basePackage == null || basePackage.isEmpty()) {
             throw new ServletException("Paramètre 'base-package' manquant dans web.xml");
         }
 
         try {
             RouteInitializer routeInitializer = new RouteInitializer();
-            this.routes = routeInitializer.initializeRoutes(basePackage, getClass().getClassLoader());
+            this.routes = routeInitializer.initializeRoutes(basePackage, modelPackage, getClass().getClassLoader());
             this.requestHandler = new RequestHandler(routes);
         } catch (Exception e) {
             throw new ServletException("Erreur lors de l'initialisation des routes : " + basePackage, e);

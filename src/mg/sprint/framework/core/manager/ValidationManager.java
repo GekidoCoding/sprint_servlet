@@ -73,26 +73,5 @@ public class ValidationManager {
         session.removeAttribute(VALUES_SESSION_KEY);
     }
     
-    // public static Map<String, String> getMapErrors(ValidationManager validationManager, String prefix) {
-    //     Map<String, String> errors = new HashMap<>();
-
-    //     Map<String, List<String>> fieldErrors = validationManager.getFieldErrors();
-    //     for (Map.Entry<String, List<String>> entry : fieldErrors.entrySet()) {
-    //         String fieldName = entry.getKey(); // exemple : user.name
-    //         List<String> errorMessages = entry.getValue();
-
-    //         // Concaténer les messages d'erreur en une seule chaîne (séparés par ", ")
-    //         String combinedErrors = String.join("$_", errorMessages);
-
-    //         // Préfixer la clé
-    //         String key = "error_" + prefix + fieldName;
-
-    //         errors.put(key, combinedErrors);
-    //     }
-
-    //     return errors;
-    // }
-
-    
 
 }

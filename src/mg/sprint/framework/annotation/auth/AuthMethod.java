@@ -1,11 +1,12 @@
-package mg.sprint.framework.annotations.http;
+package mg.sprint.framework.annotation.auth;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Post {
+@Target(ElementType.METHOD)
+public @interface AuthMethod {
+    int level();
 }
