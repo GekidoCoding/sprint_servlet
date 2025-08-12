@@ -62,3 +62,23 @@
   - Journalisation : ERROR pour les exceptions capturées avec traces.
 - **Défis relevés** : Pages d'erreur personnalisées sans JSP ; messages adaptés à l'i18n.
 - **Test** : Induction d'erreurs 404/500 ; vérification de la sortie HTML.
+
+### Sprint 6 : Formulaire → Contrôleur
+- **Objectif** : Lier les paramètres de formulaire.
+- **Implémentations clés** :
+  - Ajout de l'annotation `@RequestParam(value)`.
+  - Dans `ArgumentResolver`, utilisation de Paranamer pour obtenir les noms des paramètres, résolution des paramètres simples avec `req.getParameter(name)`, conversion via `ConvertUtil.convertValue()`.
+  - Levée d'une `IllegalArgumentException` si le paramètre est manquant.
+  - Journalisation : TRACE pour les valeurs résolues.
+- **Défis relevés** : Résolution des noms de paramètres sans Java 8+.
+- **Test** : Méthodes avec paramètres string/int ; soumission de formulaires.
+
+### Sprint 7 : Paramètre objet
+- **Objectif** : Mapper les formulaires aux objets.
+- **Implémentations clés** :
+  - Ajout de `@RequestObject(name="prefix")`.
+  - Dans `ArgumentResolver.resolveRequestObject()`, instanciation de l'objet, définition des champs à partir de `req.getParameter(prefix + "." + fieldName)`, utilisation de `@FormName` pour les noms personnalisés.
+  - Intégration de la validation de base (étendue plus tard).
+  - Journalisation : DEBUG pour la création/définition d'objets.
+- **Défis relevés** : Définition de champs basée sur la réflexion ; conversion de types.
+- **Test** : Soumission de formulaires avec paramètres préfixés ; vérification du peuplement de l'objet.
