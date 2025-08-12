@@ -19,12 +19,15 @@ import mg.sprint.framework.annotation.validation.Regex;
 import mg.sprint.framework.annotation.validation.Required;
 import mg.sprint.framework.annotation.validation.Size;
 import mg.sprint.framework.core.manager.ValidationManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ValidationUtil {
+    private static final Logger logger = LoggerFactory.getLogger(ValidationUtil.class);
 
     public static ValidationManager validate(Object obj) {
         ValidationManager validationManager = new ValidationManager();
-        System.out.println("=== Debut de la validation de l'objet: " + obj.getClass().getName() + " ===");
+        logger.info("Starting validation for object: {}", obj.getClass().getName());
 
         for (Field field : obj.getClass().getDeclaredFields()) {
             field.setAccessible(true);
@@ -34,163 +37,152 @@ public class ValidationUtil {
             try {
                 value = field.get(obj);
                 stringValue = (value != null) ? value.toString().trim() : "";
-                System.out.println("Champ: " + field.getName() + " | Valeur brute: " + value + " | Valeur traitee: " + stringValue);
+                logger.trace("Field: {} | Raw value: {} | Processed value: {}", 
+                    field.getName(), value, stringValue);
                 
                 validationManager.addValue(field.getName(), stringValue);
             } catch (IllegalAccessException e) {
-                System.out.println("Erreur d'accès au champ: " + field.getName());
+                logger.error("Error accessing field: {}", field.getName(), e);
                 continue;
             }
 
-            // @Required
             if (field.isAnnotationPresent(Required.class)) {
-                System.out.println(" -> Validation @Required pour: " + field.getName());
+                logger.debug("Validating @Required for: {}", field.getName());
                 if (stringValue.isEmpty()) {
-                    System.out.println("    ❌ Champ requis vide !");
+                    logger.warn("Required field '{}' is empty", field.getName());
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' est requis.");
                 }
             }
 
             if (stringValue.isEmpty() && !field.isAnnotationPresent(Required.class)) {
-                System.out.println("Champ " + field.getName() + " vide et non requis, skip les autres validations.");
+                logger.debug("Field {} is empty and not required, skipping further validations", field.getName());
                 continue;
             }
 
-            // @Numeric
             if (field.isAnnotationPresent(Numeric.class)) {
-                System.out.println(" -> Validation @Numeric pour: " + field.getName());
+                logger.debug("Validating @Numeric for: {}", field.getName());
                 if (!stringValue.matches("\\d+")) {
-                    System.out.println("    ❌ Non numérique !");
+                    logger.warn("Field '{}' is not numeric: {}", field.getName(), stringValue);
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être numérique.");
                 }
             }
 
-            // @Decimal
             if (field.isAnnotationPresent(Decimal.class)) {
-                System.out.println(" -> Validation @Decimal pour: " + field.getName());
+                logger.debug("Validating @Decimal for: {}", field.getName());
                 if (!stringValue.matches("[-+]?[0-9]*\\.?[0-9]+")) {
-                    System.out.println("    ❌ Format décimal invalide !");
+                    logger.warn("Field '{}' is not a valid decimal: {}", field.getName(), stringValue);
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être un nombre décimal.");
                 }
             }
 
-            // @Min
             if (field.isAnnotationPresent(Min.class)) {
-                System.out.println(" -> Validation @Min pour: " + field.getName());
+                logger.debug("Validating @Min for: {}", field.getName());
                 try {
                     double min = field.getAnnotation(Min.class).value();
                     double val = Double.parseDouble(stringValue);
                     if (val < min) {
-                        System.out.println("    ❌ Valeur " + val + " < min " + min);
+                        logger.warn("Field '{}' value {} is less than min {}", field.getName(), val, min);
                         validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être ≥ " + min);
                     }
                 } catch (NumberFormatException e) {
-                    System.out.println("    ❌ Erreur de conversion pour @Min !");
+                    logger.warn("Field '{}' cannot be converted to number for @Min: {}", field.getName(), stringValue);
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être un nombre valide pour la validation Min.");
                 }
             }
 
-            // @Max
             if (field.isAnnotationPresent(Max.class)) {
-                System.out.println(" -> Validation @Max pour: " + field.getName());
+                logger.debug("Validating @Max for: {}", field.getName());
                 try {
                     double max = field.getAnnotation(Max.class).value();
                     double val = Double.parseDouble(stringValue);
                     if (val > max) {
-                        System.out.println("    ❌ Valeur " + val + " > max " + max);
+                        logger.warn("Field '{}' value {} is greater than max {}", field.getName(), val, max);
                         validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être ≤ " + max);
                     }
                 } catch (NumberFormatException e) {
-                    System.out.println("    ❌ Erreur de conversion pour @Max !");
+                    logger.warn("Field '{}' cannot be converted to number for @Max: {}", field.getName(), stringValue);
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être un nombre valide pour la validation Max.");
                 }
             }
 
-            // @Size
             if (field.isAnnotationPresent(Size.class)) {
-                System.out.println(" -> Validation @Size pour: " + field.getName());
+                logger.debug("Validating @Size for: {}", field.getName());
                 int len = stringValue.length();
                 Size size = field.getAnnotation(Size.class);
                 if (len < size.min() || len > size.max()) {
-                    System.out.println("    ❌ Taille invalide: " + len + " (min=" + size.min() + ", max=" + size.max() + ")");
-                    validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit avoir entre " + size.min() + " et " + size.max() + " caractères.");
+                    logger.warn("Field '{}' length {} is outside range [min={}, max={}]", 
+                        field.getName(), len, size.min(), size.max());
+                    validationManager.addError(field.getName(), 
+                        "Le champ '" + field.getName() + "' doit avoir entre " + size.min() + " et " + size.max() + " caractères.");
                 }
             }
 
-            // @Regex
             if (field.isAnnotationPresent(Regex.class)) {
-                System.out.println(" -> Validation @Regex pour: " + field.getName());
+                logger.debug("Validating @Regex for: {}", field.getName());
                 String pattern = field.getAnnotation(Regex.class).pattern();
                 if (!stringValue.matches(pattern)) {
-                    System.out.println("    ❌ Ne correspond pas au pattern: " + pattern);
+                    logger.warn("Field '{}' does not match pattern '{}': {}", field.getName(), pattern, stringValue);
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' ne correspond pas au format requis.");
                 }
             }
 
-            // @In
             if (field.isAnnotationPresent(In.class)) {
-                System.out.println(" -> Validation @In pour: " + field.getName());
+                logger.debug("Validating @In for: {}", field.getName());
                 String[] values = field.getAnnotation(In.class).value();
                 if (!Arrays.asList(values).contains(stringValue)) {
-                    System.out.println("    ❌ " + stringValue + " n'est pas dans " + Arrays.toString(values));
+                    logger.warn("Field '{}' value {} is not in {}", field.getName(), stringValue, Arrays.toString(values));
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être dans " + Arrays.toString(values));
                 }
             }
 
-            // @Phone
             if (field.isAnnotationPresent(Phone.class)) {
-                System.out.println(" -> Validation @Phone pour: " + field.getName());
+                logger.debug("Validating @Phone for: {}", field.getName());
                 if (!stringValue.matches("^\\+?[0-9]{7,15}$")) {
-                    System.out.println("    ❌ Numéro de téléphone invalide");
+                    logger.warn("Field '{}' is not a valid phone number: {}", field.getName(), stringValue);
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' n'est pas un numéro de téléphone valide.");
                 }
             }
 
-            // @BooleanField
             if (field.isAnnotationPresent(BooleanField.class)) {
-                System.out.println(" -> Validation @BooleanField pour: " + field.getName());
+                logger.debug("Validating @BooleanField for: {}", field.getName());
                 if (!stringValue.equalsIgnoreCase("true") && !stringValue.equalsIgnoreCase("false")) {
-                    System.out.println("    ❌ Valeur booléenne invalide");
+                    logger.warn("Field '{}' is not a valid boolean: {}", field.getName(), stringValue);
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être true ou false.");
                 }
             }
 
-         if (field.isAnnotationPresent(DateFormat.class)) {
-            System.out.println(" -> Validation @DateFormat pour: " + field.getName());
-            String pattern = field.getAnnotation(DateFormat.class).pattern();
-            SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-            sdf.setLenient(false); // Rend la validation plus stricte
+            if (field.isAnnotationPresent(DateFormat.class)) {
+                logger.debug("Validating @DateFormat for: {}", field.getName());
+                String pattern = field.getAnnotation(DateFormat.class).pattern();
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+                sdf.setLenient(false);
 
-            try {
-                Date date = sdf.parse(stringValue);
-
-                // Vérification que la chaîne correspond exactement au pattern (ex: pas "2024-1-1" pour "yyyy-MM-dd")
-                String reformatted = sdf.format(date);
-                if (!stringValue.equals(reformatted)) {
-                    throw new ParseException("Le format exact ne correspond pas.", 0);
+                try {
+                    Date date = sdf.parse(stringValue);
+                    String reformatted = sdf.format(date);
+                    if (!stringValue.equals(reformatted)) {
+                        throw new ParseException("Le format exact ne correspond pas.", 0);
+                    }
+                } catch (ParseException e) {
+                    logger.warn("Field '{}' has invalid date format, expected '{}': {}", 
+                        field.getName(), pattern, stringValue);
+                    validationManager.addError(
+                        field.getName(),
+                        "Le champ '" + field.getName() + "' doit respecter exactement le format : " + pattern
+                    );
                 }
-
-            } catch (ParseException e) {
-                System.out.println("    ❌ Format de date invalide, attendu: " + pattern);
-                validationManager.addError(
-                    field.getName(),
-                    "Le champ '" + field.getName() + "' doit respecter exactement le format : " + pattern
-                );
             }
-        }
 
-            // @Email
             if (field.isAnnotationPresent(Email.class)) {
-                System.out.println(" -> Validation @Email pour: " + field.getName());
+                logger.debug("Validating @Email for: {}", field.getName());
                 if (!stringValue.matches("^[\\w-.]+@[\\w-]+\\.[a-zA-Z]{2,}$")) {
-                    System.out.println("    ❌ Adresse email invalide");
+                    logger.warn("Field '{}' is not a valid email: {}", field.getName(), stringValue);
                     validationManager.addError(field.getName(), "Le champ '" + field.getName() + "' doit être un email valide.");
                 }
             }
         }
 
-        System.out.println("=== Fin de la validation ===");
+        logger.info("Completed validation for object: {}", obj.getClass().getName());
         return validationManager;
     }
-
 }
