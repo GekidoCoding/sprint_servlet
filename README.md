@@ -20,3 +20,14 @@
   - Journalisation : INFO pour le début du scan, DEBUG pour chaque classe trouvée, ERROR si package manquant.
 - **Défis relevés** : Scan récursif sans bibliothèques externes ; traitement uniquement des classes annotées.
 - **Test** : Ajout de contrôleurs de test ; vérification que le scan les liste correctement.
+
+### Sprint 2 : Mapping des URLs
+- **Objectif** : Associer les URLs aux méthodes des contrôleurs.
+- **Implémentations clés** :
+  - Ajout des annotations `@Url(path)` et `@Get`.
+  - Création de la classe `Mapping` avec `controllerClass`, `verbActions` (liste de `VerbAction(verb, methodName)`), et `controllerAuthLevel`.
+  - Dans `RouteInitializer.processControllerClass()`, pour chaque méthode annotée avec `@Url`, construction de l'URL complète (base + chemin), détermination du verbe ("GET" par défaut), création/mise à jour de `Mapping`, et enregistrement dans `RouteRegistry` (un `HashMap<String, Mapping>` statique).
+  - Ajout des méthodes `RouteRegistry.register()` et `get()`.
+  - Journalisation : INFO pour chaque route enregistrée avec chemin, contrôleur, verbe.
+- **Défis relevés** : Support de plusieurs méthodes par URL (via verbes) ; prévention des enregistrements en double.
+- **Test** : Vérification que `RouteRegistry` contient les mappings corrects.
