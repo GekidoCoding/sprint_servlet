@@ -20,3 +20,25 @@
   - Journalisation : INFO pour le début du scan, DEBUG pour chaque classe trouvée, ERROR si package manquant.
 - **Défis relevés** : Scan récursif sans bibliothèques externes ; traitement uniquement des classes annotées.
 - **Test** : Ajout de contrôleurs de test ; vérification que le scan les liste correctement.
+
+### Sprint 2 : Mapping des URLs
+- **Objectif** : Associer les URLs aux méthodes des contrôleurs.
+- **Implémentations clés** :
+  - Ajout des annotations `@Url(path)` et `@Get`.
+  - Création de la classe `Mapping` avec `controllerClass`, `verbActions` (liste de `VerbAction(verb, methodName)`), et `controllerAuthLevel`.
+  - Dans `RouteInitializer.processControllerClass()`, pour chaque méthode annotée avec `@Url`, construction de l'URL complète (base + chemin), détermination du verbe ("GET" par défaut), création/mise à jour de `Mapping`, et enregistrement dans `RouteRegistry` (un `HashMap<String, Mapping>` statique).
+  - Ajout des méthodes `RouteRegistry.register()` et `get()`.
+  - Journalisation : INFO pour chaque route enregistrée avec chemin, contrôleur, verbe.
+- **Défis relevés** : Support de plusieurs méthodes par URL (via verbes) ; prévention des enregistrements en double.
+- **Test** : Vérification que `RouteRegistry` contient les mappings corrects.
+
+### Sprint 3 : Exécution dynamique
+- **Objectif** : Invoquer les méthodes des contrôleurs à l'exécution.
+- **Implémentations clés** :
+  - Dans `RequestHandler.processRequest()`, extraction du chemin de la requête, récupération du `Mapping` depuis `RouteRegistry`, obtention de la méthode via `mapping.getMethodByVerb(req.getMethod())`.
+  - Instanciation du contrôleur avec `mapping.getControllerClass().getDeclaredConstructor().newInstance()`.
+  - Invocation de la méthode avec `method.invoke(controllerInstance, args)` (args initialement vide).
+  - Gestion de `NoSuchMethodException` pour les erreurs 405.
+  - Journalisation : DEBUG pour l'invocation de méthode, ERROR pour les méthodes manquantes.
+- **Défis relevés** : Invocation basée sur la réflexion ; gestion basique des arguments.
+- **Test** : Appel de méthodes simples retournant des chaînes ; vérification de la sortie.
