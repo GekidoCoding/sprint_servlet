@@ -5,11 +5,13 @@ import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 
 import mg.sprint.framework.annotations.Controller;
+import mg.sprint.framework.annotations.Get;
+import mg.sprint.framework.annotations.Post;
 import mg.sprint.framework.annotations.RequestField;
 import mg.sprint.framework.annotations.RequestObject;
 import mg.sprint.framework.annotations.RequestParam;
 import mg.sprint.framework.annotations.RestAPI;
-import mg.sprint.framework.annotations.Route;
+import mg.sprint.framework.annotations.Url;
 import mg.sprint.framework.core.Mapping;
 import mg.sprint.framework.core.ModelView;
 import mg.sprint.framework.core.RouteRegistry;
@@ -44,23 +46,36 @@ public class FrontController extends HttpServlet {
                 throw new ServletException("Aucune classe trouvée dans le package " + basePackage);
             }
 
+            Map<String, Set<String>> urlVerbMap = new HashMap<>(); // Pour détecter les doublons
             Set<String> allPaths = new HashSet<>();
 
             for (Class<?> cls : classes) {
                 if (cls.isAnnotationPresent(Controller.class)) {
                     for (Method method : cls.getDeclaredMethods()) {
-                        if (method.isAnnotationPresent(Route.class)) {
-                            String path = method.getAnnotation(Route.class).path();
+                        if (method.isAnnotationPresent(Url.class)) {
+                            String url = method.getAnnotation(Url.class).path();
+                            String verb = "GET"; // Par défaut
 
-                            if (allPaths.contains(path)) {
-                                throw new ServletException("Route dupliquée détectée pour le chemin : " + path);
+                            if (method.isAnnotationPresent(Post.class)) {
+                                verb = "POST";
+                            } else if (method.isAnnotationPresent(Get.class)) {
+                                verb = "GET";
                             }
 
-                            Mapping mapping = new Mapping(cls, method);
-                            routes.put(path, mapping);
-                            RouteRegistry.register(path, mapping);
-                            allPaths.add(path);
-                            System.out.println("[Sprint] Route enregistrée : " + path + " -> " + cls.getName() + "." + method.getName());
+                            // Détection des doublons (url + verbe)
+                            urlVerbMap.putIfAbsent(url, new HashSet<>());
+                            if (!urlVerbMap.get(url).add(verb)) {
+                                throw new ServletException("Conflit de route détecté : l'URL '" + url + "' est déjà utilisée avec le verbe HTTP '" + verb + "'");
+                            }
+
+                            // Enregistrement normal de la route dans ton Mapping
+                            Mapping mapping = routes.getOrDefault(url, new Mapping(cls, method));
+                            mapping.addVerbAction(verb, method.getName()); // Ajoute à VerbAction
+                            routes.put(url, mapping);
+                            RouteRegistry.register(url, mapping);
+                            allPaths.add(url);
+
+                            System.out.println("[Sprint] Route enregistrée : [" + verb + "] " + url + " -> " + cls.getName() + "." + method.getName());
                         }
                     }
                 }
@@ -70,6 +85,7 @@ public class FrontController extends HttpServlet {
             throw new ServletException("Erreur lors du scan du package : " + basePackage, e);
         }
     }
+
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -103,8 +119,17 @@ public class FrontController extends HttpServlet {
             return;
         }
 
-        Method method = mapping.method;
-        Object controllerInstance = mapping.controllerClass.getDeclaredConstructor().newInstance();
+        String httpMethod = req.getMethod(); // GET, POST, etc.
+
+        Method method;
+        try {
+            method = mapping.getMethodByVerb(httpMethod);
+        } catch (NoSuchMethodException e) {
+            resp.getWriter().println("Erreur 405 : Méthode HTTP non autorisée pour cette URL");
+            return;
+        }
+
+        Object controllerInstance = mapping.getControllerClass().getDeclaredConstructor().newInstance();
         Object[] args = buildMethodArguments(method, req);
 
         Object result = method.invoke(controllerInstance, args);
