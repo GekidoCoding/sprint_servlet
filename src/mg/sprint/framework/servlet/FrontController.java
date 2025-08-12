@@ -1,5 +1,6 @@
 package mg.sprint.framework.servlet;
 
+import com.google.gson.Gson;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 
@@ -7,6 +8,7 @@ import mg.sprint.framework.annotations.Controller;
 import mg.sprint.framework.annotations.RequestField;
 import mg.sprint.framework.annotations.RequestObject;
 import mg.sprint.framework.annotations.RequestParam;
+import mg.sprint.framework.annotations.RestAPI;
 import mg.sprint.framework.annotations.Route;
 import mg.sprint.framework.core.Mapping;
 import mg.sprint.framework.core.ModelView;
@@ -89,6 +91,7 @@ public class FrontController extends HttpServlet {
         }
     }
 
+    
     private void processRequest(HttpServletRequest req, HttpServletResponse resp) throws Exception {
         String contextPath = req.getContextPath();
         String uri = req.getRequestURI();
@@ -106,16 +109,32 @@ public class FrontController extends HttpServlet {
 
         Object result = method.invoke(controllerInstance, args);
 
-        if (result instanceof String) {
-            resp.getWriter().println((String) result);
-        } else if (result instanceof ModelView) {
-            ModelView mv = (ModelView) result;
-            for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
-                req.setAttribute(entry.getKey(), entry.getValue());
+        boolean isRestAPI = method.isAnnotationPresent(RestAPI.class);
+
+        if (isRestAPI) {
+            resp.setContentType("application/json;charset=UTF-8");
+            Gson gson = new Gson();
+
+            if (result instanceof ModelView) {
+                ModelView mv = (ModelView) result;
+                String json = gson.toJson(mv.getData());
+                resp.getWriter().println(json);
+            } else {
+                String json = gson.toJson(result);
+                resp.getWriter().println(json);
             }
-            req.getRequestDispatcher(mv.getUrl()).forward(req, resp);
         } else {
-            resp.getWriter().println("Type de retour non reconnu : " + result.getClass().getName());
+            if (result instanceof String) {
+                resp.getWriter().println((String) result);
+            } else if (result instanceof ModelView) {
+                ModelView mv = (ModelView) result;
+                for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
+                    req.setAttribute(entry.getKey(), entry.getValue());
+                }
+                req.getRequestDispatcher(mv.getUrl()).forward(req, resp);
+            } else {
+                resp.getWriter().println("Type de retour non reconnu : " + result.getClass().getName());
+            }
         }
     }
 // import mg.sprint.framework.session.MySession;
