@@ -4,6 +4,8 @@ import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 
 import mg.sprint.framework.annotations.Controller;
+import mg.sprint.framework.annotations.RequestField;
+import mg.sprint.framework.annotations.RequestObject;
 import mg.sprint.framework.annotations.RequestParam;
 import mg.sprint.framework.annotations.Route;
 import mg.sprint.framework.core.Mapping;
@@ -16,6 +18,7 @@ import javax.servlet.*;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -115,6 +118,7 @@ public class FrontController extends HttpServlet {
             resp.getWriter().println("Type de retour non reconnu : " + result.getClass().getName());
         }
     }
+// import mg.sprint.framework.session.MySession;
 
     private Object[] buildMethodArguments(Method method, HttpServletRequest req) throws Exception {
         Parameter[] parameters = method.getParameters();
@@ -125,24 +129,47 @@ public class FrontController extends HttpServlet {
 
         for (int i = 0; i < parameters.length; i++) {
             Parameter param = parameters[i];
-            String name = null;
 
-            if (param.isAnnotationPresent(RequestParam.class)) {
-                name = param.getAnnotation(RequestParam.class).value();
-            } else if (paramNames != null && i < paramNames.length) {
-                name = paramNames[i];
-            } else {
-                throw new IllegalArgumentException("Nom du paramètre introuvable pour le paramètre #" + i);
+            if (param.getType().equals(mg.sprint.framework.session.MySession.class)) {
+                args[i] = new mg.sprint.framework.session.MySession(req.getSession());
             }
-
-            String value = req.getParameter(name);
-            if (value == null) {
-                throw new IllegalArgumentException("Paramètre '" + name + "' manquant dans la requête");
+            else if (param.isAnnotationPresent(RequestObject.class)) {
+                Object obj = param.getType().getDeclaredConstructor().newInstance();
+                for (Field field : obj.getClass().getDeclaredFields()) {
+                    String fieldName = field.getName();
+                    if (field.isAnnotationPresent(RequestField.class)) {
+                        fieldName = field.getAnnotation(RequestField.class).value();
+                    }
+                    String value = req.getParameter(fieldName);
+                    if (value != null) {
+                        field.setAccessible(true);
+                        field.set(obj, ConvertUtil.convertValue(value, field.getType()));
+                    }
+                }
+                args[i] = obj;
             }
+            else {
+                String name = null;
 
-            args[i] = ConvertUtil.convertValue(value, param.getType());
+                if (param.isAnnotationPresent(RequestParam.class)) {
+                    name = param.getAnnotation(RequestParam.class).value();
+                } else if (paramNames != null && i < paramNames.length) {
+                    name = paramNames[i];
+                } else {
+                    throw new IllegalArgumentException("Nom du paramètre introuvable pour le paramètre #" + i);
+                }
+
+                String value = req.getParameter(name);
+                if (value == null) {
+                    throw new IllegalArgumentException("Paramètre '" + name + "' manquant dans la requête");
+                }
+
+                args[i] = ConvertUtil.convertValue(value, param.getType());
+            }
         }
 
         return args;
     }
+
+
 }
