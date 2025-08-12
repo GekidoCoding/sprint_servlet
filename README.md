@@ -100,3 +100,22 @@
   - Journalisation : DEBUG pour les réponses JSON.
 - **Défis relevés** : Différenciation des réponses web/REST.
 - **Test** : Retour de listes/objets ; vérification de la sortie JSON.
+
+### Sprint 10 : Gestion des verbes HTTP
+- **Objectif** : Support complet des verbes.
+- **Implémentations clés** :
+  - Ajout de `@Post` ; mise à jour de `Mapping` pour ajouter `VerbAction` pour chaque verbe.
+  - Dans `RouteInitializer.determineHttpVerb()`, vérification des annotations.
+  - Dans `Mapping.getMethodByVerb()`, recherche de la méthode par verbe.
+  - Journalisation : TRACE pour la détermination du verbe.
+- **Défis relevés** : Même URL, verbes différents.
+- **Test** : POST/GET sur la même URL.
+
+### Sprint 11 : Affichage des erreurs
+- **Objectif** : Erreurs conviviales.
+- **Implémentations clés** :
+  - Amélioration de `Error.displayErrorPage()` avec HTML stylé, messages spécifiques pour 403/404/405.
+  - Ajout de boutons pour réessayer/retour.
+  - Journalisation : INFO pour les affichages de pages d'erreur.
+- **Défis relevés** : Pas de CSS externe ; interactivité basique.
+- **Test** : Visualisation des pages d'erreur.

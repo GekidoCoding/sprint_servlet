@@ -5,15 +5,18 @@ import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 
 import mg.sprint.framework.annotations.Controller;
+import mg.sprint.framework.annotations.Get;
+import mg.sprint.framework.annotations.Post;
 import mg.sprint.framework.annotations.RequestField;
 import mg.sprint.framework.annotations.RequestObject;
 import mg.sprint.framework.annotations.RequestParam;
 import mg.sprint.framework.annotations.RestAPI;
-import mg.sprint.framework.annotations.Route;
+import mg.sprint.framework.annotations.Url;
 import mg.sprint.framework.core.Mapping;
 import mg.sprint.framework.core.ModelView;
 import mg.sprint.framework.core.RouteRegistry;
 import mg.sprint.framework.core.RouteScanner;
+import mg.sprint.framework.page.Error;
 import mg.sprint.framework.utils.ConvertUtil;
 
 import javax.servlet.*;
@@ -44,23 +47,32 @@ public class FrontController extends HttpServlet {
                 throw new ServletException("Aucune classe trouvée dans le package " + basePackage);
             }
 
+            Map<String, Set<String>> urlVerbMap = new HashMap<>();
             Set<String> allPaths = new HashSet<>();
 
             for (Class<?> cls : classes) {
                 if (cls.isAnnotationPresent(Controller.class)) {
                     for (Method method : cls.getDeclaredMethods()) {
-                        if (method.isAnnotationPresent(Route.class)) {
-                            String path = method.getAnnotation(Route.class).path();
+                        if (method.isAnnotationPresent(Url.class)) {
+                            String url = method.getAnnotation(Url.class).path();
+                            String verb = "GET";
 
-                            if (allPaths.contains(path)) {
-                                throw new ServletException("Route dupliquée détectée pour le chemin : " + path);
+                            if (method.isAnnotationPresent(Post.class)) {
+                                verb = "POST";
+                            } else if (method.isAnnotationPresent(Get.class)) {
+                                verb = "GET";
                             }
 
-                            Mapping mapping = new Mapping(cls, method);
-                            routes.put(path, mapping);
-                            RouteRegistry.register(path, mapping);
-                            allPaths.add(path);
-                            System.out.println("[Sprint] Route enregistrée : " + path + " -> " + cls.getName() + "." + method.getName());
+                            urlVerbMap.putIfAbsent(url, new HashSet<>());
+                            if (!urlVerbMap.get(url).add(verb)) {
+                                throw new ServletException("Conflit de route détecté : l'URL '" + url + "' est déjà utilisée avec le verbe HTTP '" + verb + "'");
+                            }
+
+                            Mapping mapping = routes.getOrDefault(url, new Mapping(cls, method));
+                            mapping.addVerbAction(verb, method.getName());
+                            routes.put(url, mapping);
+                            RouteRegistry.register(url, mapping);
+                            allPaths.add(url);
                         }
                     }
                 }
@@ -73,25 +85,24 @@ public class FrontController extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-        throws ServletException, IOException {
+            throws ServletException, IOException {
         try {
             processRequest(req, resp);
         } catch (Exception e) {
-            e.printStackTrace(resp.getWriter());
+            new Error().displayErrorPage(resp, e);
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-        throws ServletException, IOException {
+            throws ServletException, IOException {
         try {
             processRequest(req, resp);
         } catch (Exception e) {
-            e.printStackTrace(resp.getWriter());
+            new Error().displayErrorPage(resp, e);
         }
     }
 
-    
     private void processRequest(HttpServletRequest req, HttpServletResponse resp) throws Exception {
         String contextPath = req.getContextPath();
         String uri = req.getRequestURI();
@@ -99,12 +110,21 @@ public class FrontController extends HttpServlet {
 
         Mapping mapping = routes.get(path);
         if (mapping == null) {
-            resp.getWriter().println("Erreur 404 : URL non trouvée");
+            new Error().displayErrorPage(resp, new Exception("Erreur 404 : URL non trouvée"));
             return;
         }
 
-        Method method = mapping.method;
-        Object controllerInstance = mapping.controllerClass.getDeclaredConstructor().newInstance();
+        String httpMethod = req.getMethod();
+
+        Method method;
+        try {
+            method = mapping.getMethodByVerb(httpMethod);
+        } catch (NoSuchMethodException e) {
+            new Error().displayErrorPage(resp, new Exception("Erreur 405 : Méthode HTTP non autorisée pour cette URL"));
+            return;
+        }
+
+        Object controllerInstance = mapping.getControllerClass().getDeclaredConstructor().newInstance();
         Object[] args = buildMethodArguments(method, req);
 
         Object result = method.invoke(controllerInstance, args);
@@ -133,11 +153,10 @@ public class FrontController extends HttpServlet {
                 }
                 req.getRequestDispatcher(mv.getUrl()).forward(req, resp);
             } else {
-                resp.getWriter().println("Type de retour non reconnu : " + result.getClass().getName());
+                new Error().displayErrorPage(resp, new Exception("Type de retour non reconnu : " + result.getClass().getName()));
             }
         }
     }
-// import mg.sprint.framework.session.MySession;
 
     private Object[] buildMethodArguments(Method method, HttpServletRequest req) throws Exception {
         Parameter[] parameters = method.getParameters();
@@ -146,13 +165,13 @@ public class FrontController extends HttpServlet {
         Paranamer paranamer = new BytecodeReadingParanamer();
         String[] paramNames = paranamer.lookupParameterNames(method, false);
 
+
         for (int i = 0; i < parameters.length; i++) {
             Parameter param = parameters[i];
 
             if (param.getType().equals(mg.sprint.framework.session.MySession.class)) {
                 args[i] = new mg.sprint.framework.session.MySession(req.getSession());
-            }
-            else if (param.isAnnotationPresent(RequestObject.class)) {
+            } else if (param.isAnnotationPresent(RequestObject.class)) {
                 Object obj = param.getType().getDeclaredConstructor().newInstance();
                 for (Field field : obj.getClass().getDeclaredFields()) {
                     String fieldName = field.getName();
@@ -189,6 +208,4 @@ public class FrontController extends HttpServlet {
 
         return args;
     }
-
-
-}
+} 
