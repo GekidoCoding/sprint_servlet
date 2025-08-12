@@ -20,6 +20,7 @@ import mg.sprint.framework.page.Error;
 import mg.sprint.framework.utils.ConvertUtil;
 
 import javax.servlet.*;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
@@ -28,6 +29,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 
+@MultipartConfig
 @WebServlet(name = "FrontController", urlPatterns = "/*", loadOnStartup = 1)
 public class FrontController extends HttpServlet {
     private final Map<String, Mapping> routes = new HashMap<>();
@@ -185,6 +187,23 @@ public class FrontController extends HttpServlet {
                     }
                 }
                 args[i] = obj;
+            } else if (param.getType().equals(Part.class)) {
+                String name = null;
+
+                if (param.isAnnotationPresent(RequestParam.class)) {
+                    name = param.getAnnotation(RequestParam.class).value();
+                } else if (paramNames != null && i < paramNames.length) {
+                    name = paramNames[i];
+                } else {
+                    throw new IllegalArgumentException("Nom du paramètre introuvable pour un Part à l'index " + i);
+                }
+
+                System.out.println("param Part name: " + name);
+                Part part = req.getPart(name);
+                if (part == null) {
+                    throw new IllegalArgumentException("Fichier '" + name + "' manquant dans le formulaire");
+                }
+                args[i] = part;
             }
             else {
                 String name = null;
