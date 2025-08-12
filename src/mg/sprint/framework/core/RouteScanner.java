@@ -1,35 +1,37 @@
 package mg.sprint.framework.core;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 
 public class RouteScanner {
-    public static List<Class<?>> scan(String basePackage ,  ClassLoader classLoader ) throws IOException, ClassNotFoundException {
-        List<Class<?>> classes = new ArrayList<>() ;
-        String path = basePackage.replace('.', '/');
-        Enumeration<URL> resources = classLoader.getResources(path);
 
-        while (resources.hasMoreElements()) {
-            URL resource = resources.nextElement();
-            File directory = new File(resource.getFile());
-            if (directory.exists()) {
-                for (String file : directory.list()) {
-                    if (file.endsWith(".class")) {
-                        String className = basePackage + "." + file.substring(0, file.length() - 6);
-                        Class<?> clazz = Class.forName(className);
-                        classes.add(clazz);
-                    }
-                }
+    public static List<Class<?>> scan(String basePackage, ClassLoader classLoader) throws ClassNotFoundException {
+        String path = basePackage.replace('.', '/');
+        URL resource = classLoader.getResource(path);
+        if (resource == null) {
+            throw new ClassNotFoundException("Package " + basePackage + " introuvable");
+        }
+
+        File directory = new File(resource.getFile());
+        List<Class<?>> classes = new ArrayList<>();
+        findClasses(directory, basePackage, classes, classLoader);
+        return classes;
+    }
+
+    private static void findClasses(File directory, String packageName, List<Class<?>> classes, ClassLoader classLoader) throws ClassNotFoundException {
+        if (!directory.exists()) {
+            return;
+        }
+        for (File file : directory.listFiles()) {
+            if (file.isDirectory()) {
+                // appel récursif dans les sous-dossiers
+                findClasses(file, packageName + "." + file.getName(), classes, classLoader);
+            } else if (file.getName().endsWith(".class")) {
+                String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
+                classes.add(classLoader.loadClass(className));
             }
         }
-        for (Class<?> cls : classes) {
-            System.out.println("[DEBUG] Classe trouvée : " + cls.getName());
-        }
-
-        return classes;
     }
 }

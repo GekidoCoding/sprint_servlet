@@ -82,3 +82,21 @@
   - Journalisation : DEBUG pour la création/définition d'objets.
 - **Défis relevés** : Définition de champs basée sur la réflexion ; conversion de types.
 - **Test** : Soumission de formulaires avec paramètres préfixés ; vérification du peuplement de l'objet.
+
+### Sprint 8 : Gestion de session
+- **Objectif** : Gérer les sessions facilement.
+- **Implémentations clés** :
+  - Création de `MySession` encapsulant `HttpSession`, avec `get(key)`, `add(key, obj)`, `delete(key)`.
+  - Dans `ArgumentResolver`, si le type du paramètre est `MySession`, retour de `new MySession(req.getSession())`.
+  - Journalisation : TRACE pour les récupérations, DEBUG pour les ajouts/suppressions.
+- **Défis relevés** : API de session simplifiée ; injection automatique.
+- **Test** : Définition/récupération d'attributs dans les contrôleurs.
+
+### Sprint 9 : API REST
+- **Objectif** : Supporter les API JSON.
+- **Implémentations clés** :
+  - Ajout de l'annotation `@RestAPI`.
+  - Dans `RequestHandler`, vérification de `@RestAPI` ; dans `ResponseHandler.handleRestApiResponse()`, définition du type de contenu JSON, sérialisation du résultat/`ModelView.data` avec Gson.
+  - Journalisation : DEBUG pour les réponses JSON.
+- **Défis relevés** : Différenciation des réponses web/REST.
+- **Test** : Retour de listes/objets ; vérification de la sortie JSON.
