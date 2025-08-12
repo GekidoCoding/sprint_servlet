@@ -72,3 +72,13 @@
   - Journalisation : TRACE pour les valeurs résolues.
 - **Défis relevés** : Résolution des noms de paramètres sans Java 8+.
 - **Test** : Méthodes avec paramètres string/int ; soumission de formulaires.
+
+### Sprint 7 : Paramètre objet
+- **Objectif** : Mapper les formulaires aux objets.
+- **Implémentations clés** :
+  - Ajout de `@RequestObject(name="prefix")`.
+  - Dans `ArgumentResolver.resolveRequestObject()`, instanciation de l'objet, définition des champs à partir de `req.getParameter(prefix + "." + fieldName)`, utilisation de `@FormName` pour les noms personnalisés.
+  - Intégration de la validation de base (étendue plus tard).
+  - Journalisation : DEBUG pour la création/définition d'objets.
+- **Défis relevés** : Définition de champs basée sur la réflexion ; conversion de types.
+- **Test** : Soumission de formulaires avec paramètres préfixés ; vérification du peuplement de l'objet.
