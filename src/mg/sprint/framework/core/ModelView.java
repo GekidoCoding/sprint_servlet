@@ -15,11 +15,15 @@ public class ModelView {
         return url;
     }
 
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
     public Map<String, Object> getData() {
         return data;
     }
 
     public void addData(String key, Object value) {
-        data.put(key, value);
+        this.data.put(key, value);
     }
-}
+} 
