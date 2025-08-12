@@ -91,3 +91,22 @@
   - Journalisation : TRACE pour les récupérations, DEBUG pour les ajouts/suppressions.
 - **Défis relevés** : API de session simplifiée ; injection automatique.
 - **Test** : Définition/récupération d'attributs dans les contrôleurs.
+
+### Sprint 9 : API REST
+- **Objectif** : Supporter les API JSON.
+- **Implémentations clés** :
+  - Ajout de l'annotation `@RestAPI`.
+  - Dans `RequestHandler`, vérification de `@RestAPI` ; dans `ResponseHandler.handleRestApiResponse()`, définition du type de contenu JSON, sérialisation du résultat/`ModelView.data` avec Gson.
+  - Journalisation : DEBUG pour les réponses JSON.
+- **Défis relevés** : Différenciation des réponses web/REST.
+- **Test** : Retour de listes/objets ; vérification de la sortie JSON.
+
+### Sprint 10 : Gestion des verbes HTTP
+- **Objectif** : Support complet des verbes.
+- **Implémentations clés** :
+  - Ajout de `@Post` ; mise à jour de `Mapping` pour ajouter `VerbAction` pour chaque verbe.
+  - Dans `RouteInitializer.determineHttpVerb()`, vérification des annotations.
+  - Dans `Mapping.getMethodByVerb()`, recherche de la méthode par verbe.
+  - Journalisation : TRACE pour la détermination du verbe.
+- **Défis relevés** : Même URL, verbes différents.
+- **Test** : POST/GET sur la même URL.
