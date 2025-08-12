@@ -1,4 +1,4 @@
-package mg.sprint.framework.session;
+package mg.sprint.framework.core.object;
 
 import javax.servlet.http.HttpSession;
 

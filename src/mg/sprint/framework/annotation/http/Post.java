@@ -1,4 +1,4 @@
-package mg.sprint.framework.annotations;
+package mg.sprint.framework.annotation.http;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

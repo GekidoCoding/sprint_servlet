@@ -1,4 +1,4 @@
-package mg.sprint.framework.annotations;
+package mg.sprint.framework.annotation.arg;
 
 import java.lang.annotation.*;
 

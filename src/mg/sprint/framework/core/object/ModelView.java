@@ -1,4 +1,4 @@
-package mg.sprint.framework.core;
+package mg.sprint.framework.core.object;
 
 import java.util.HashMap;
 import java.util.Map;

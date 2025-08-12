@@ -1,4 +1,4 @@
-package mg.sprint.framework.core;
+package mg.sprint.framework.core.route;
 
 import java.io.File;
 import java.net.URL;

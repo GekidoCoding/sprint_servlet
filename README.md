@@ -119,3 +119,33 @@
   - Journalisation : INFO pour les affichages de pages d'erreur.
 - **Défis relevés** : Pas de CSS externe ; interactivité basique.
 - **Test** : Visualisation des pages d'erreur.
+
+### Sprint 12 : Upload de fichier
+- **Objectif** : Gérer les fichiers.
+- **Implémentations clés** :
+  - `@MultipartConfig` sur `FrontController`.
+  - Dans `ArgumentResolver`, si le paramètre est `Part`, obtention de `req.getPart(name)`.
+  - Levée d'une exception si manquant.
+  - Journalisation : DEBUG pour les parties de fichier.
+- **Défis relevés** : Requêtes multipart.
+- **Test** : Upload de fichiers via formulaires.
+
+### Sprint 13 : Validation (v1)
+- **Objectif** : Validation basique des champs.
+- **Implémentations clés** :
+  - Ajout des annotations comme `@Required`, `@Numeric`, `@Email`, `@DateFormat`.
+  - Dans `ValidationUtil.validate()`, vérification de chaque annotation, levée de `ValidationException` en cas d'échec.
+  - Intégration dans `ArgumentResolver` pour `@RequestObject`.
+  - Journalisation : WARN pour les échecs.
+- **Défis relevés** : Correspondance regex/motifs.
+- **Test** : Données invalides levant des exceptions.
+
+### Sprint 14 : Validation (v2)
+- **Objectif** : Validation sans exception.
+- **Implémentations clés** :
+  - Création de `ValidationManager` avec `addError(field, msg)`, `addValue(field, val)`, `hasErrors()`.
+  - Mise à jour de `ValidationUtil` pour remplir le manager au lieu de lever des exceptions.
+  - Dans `RequestHandler`, injection du manager, vérification des erreurs, ajout à la requête comme `error_field`, transfert à l'URL précédente.
+  - Journalisation : DEBUG pour les erreurs/valeurs ajoutées.
+- **Défis relevés** : Collecte/affichage des erreurs sans arrêt.
+- **Test** : Formulaires avec erreurs affichées dans la vue.
