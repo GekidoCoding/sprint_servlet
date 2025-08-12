@@ -110,3 +110,22 @@
   - Journalisation : TRACE pour la détermination du verbe.
 - **Défis relevés** : Même URL, verbes différents.
 - **Test** : POST/GET sur la même URL.
+
+### Sprint 11 : Affichage des erreurs
+- **Objectif** : Erreurs conviviales.
+- **Implémentations clés** :
+  - Amélioration de `Error.displayErrorPage()` avec HTML stylé, messages spécifiques pour 403/404/405.
+  - Ajout de boutons pour réessayer/retour.
+  - Journalisation : INFO pour les affichages de pages d'erreur.
+- **Défis relevés** : Pas de CSS externe ; interactivité basique.
+- **Test** : Visualisation des pages d'erreur.
+
+### Sprint 12 : Upload de fichier
+- **Objectif** : Gérer les fichiers.
+- **Implémentations clés** :
+  - `@MultipartConfig` sur `FrontController`.
+  - Dans `ArgumentResolver`, si le paramètre est `Part`, obtention de `req.getPart(name)`.
+  - Levée d'une exception si manquant.
+  - Journalisation : DEBUG pour les parties de fichier.
+- **Défis relevés** : Requêtes multipart.
+- **Test** : Upload de fichiers via formulaires.
