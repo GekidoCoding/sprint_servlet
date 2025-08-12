@@ -1,30 +1,32 @@
 package mg.sprint.framework.servlet;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import com.thoughtworks.paranamer.BytecodeReadingParanamer;
+import com.thoughtworks.paranamer.Paranamer;
 
 import mg.sprint.framework.annotations.Controller;
+import mg.sprint.framework.annotations.RequestParam;
 import mg.sprint.framework.annotations.Route;
 import mg.sprint.framework.core.Mapping;
 import mg.sprint.framework.core.ModelView;
 import mg.sprint.framework.core.RouteRegistry;
 import mg.sprint.framework.core.RouteScanner;
+import mg.sprint.framework.utils.ConvertUtil;
 
+import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.*;
 
 @WebServlet(name = "FrontController", urlPatterns = "/*", loadOnStartup = 1)
 public class FrontController extends HttpServlet {
+    private final Map<String, Mapping> routes = new HashMap<>();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-
         String basePackage = config.getInitParameter("base-package");
         if (basePackage == null || basePackage.isEmpty()) {
             throw new ServletException("Paramètre 'base-package' manquant dans web.xml");
@@ -32,67 +34,115 @@ public class FrontController extends HttpServlet {
 
         try {
             List<Class<?>> classes = RouteScanner.scan(basePackage, getClass().getClassLoader());
+
             if (classes.isEmpty()) {
-                throw new ServletException("Aucune classe trouvée dans le package : " + basePackage);
+                throw new ServletException("Aucune classe trouvée dans le package " + basePackage);
             }
 
-            Set<String> paths = new HashSet<>();
+            Set<String> allPaths = new HashSet<>();
+
             for (Class<?> cls : classes) {
                 if (cls.isAnnotationPresent(Controller.class)) {
                     for (Method method : cls.getDeclaredMethods()) {
                         if (method.isAnnotationPresent(Route.class)) {
                             String path = method.getAnnotation(Route.class).path();
-                            if (!paths.add(path)) {
-                                throw new ServletException("Duplicate route path found: " + path);
+
+                            if (allPaths.contains(path)) {
+                                throw new ServletException("Route dupliquée détectée pour le chemin : " + path);
                             }
+
                             Mapping mapping = new Mapping(cls, method);
+                            routes.put(path, mapping);
                             RouteRegistry.register(path, mapping);
+                            allPaths.add(path);
                             System.out.println("[Sprint] Route enregistrée : " + path + " -> " + cls.getName() + "." + method.getName());
                         }
                     }
                 }
             }
+
         } catch (Exception e) {
             throw new ServletException("Erreur lors du scan du package : " + basePackage, e);
         }
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        processRequest(req, resp);
-    }
-     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        processRequest(req, resp);
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
+        try {
+            processRequest(req, resp);
+        } catch (Exception e) {
+            e.printStackTrace(resp.getWriter());
+        }
     }
 
-    private void processRequest(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String path = req.getRequestURI().replace(req.getContextPath(), "");
-        Mapping mapping = RouteRegistry.get(path);
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
+        try {
+            processRequest(req, resp);
+        } catch (Exception e) {
+            e.printStackTrace(resp.getWriter());
+        }
+    }
 
+    private void processRequest(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        String contextPath = req.getContextPath();
+        String uri = req.getRequestURI();
+        String path = uri.substring(contextPath.length());
+
+        Mapping mapping = routes.get(path);
         if (mapping == null) {
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            resp.getWriter().println("Erreur 404 - Page non trouvée : " + path);
+            resp.getWriter().println("Erreur 404 : URL non trouvée");
             return;
         }
 
-        try {
-            Object controllerInstance = mapping.controllerClass.getDeclaredConstructor().newInstance();
-            Object result = mapping.method.invoke(controllerInstance);
+        Method method = mapping.method;
+        Object controllerInstance = mapping.controllerClass.getDeclaredConstructor().newInstance();
+        Object[] args = buildMethodArguments(method, req);
 
-            if (result instanceof String) {
-                resp.getWriter().println((String) result);
-            } else if (result instanceof ModelView) {
-                ModelView mv = (ModelView) result;
-                for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
-                    req.setAttribute(entry.getKey(), entry.getValue());
-                }
-                req.getRequestDispatcher(mv.getUrl()).forward(req, resp);
-            } else {
-                throw new ServletException("Type de retour non supporté pour la méthode : " + mapping.method.getName());
+        Object result = method.invoke(controllerInstance, args);
+
+        if (result instanceof String) {
+            resp.getWriter().println((String) result);
+        } else if (result instanceof ModelView) {
+            ModelView mv = (ModelView) result;
+            for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
+                req.setAttribute(entry.getKey(), entry.getValue());
             }
-        } catch (Exception e) {
-            throw new ServletException("Erreur lors de l'exécution de la méthode du controller", e);
+            req.getRequestDispatcher(mv.getUrl()).forward(req, resp);
+        } else {
+            resp.getWriter().println("Type de retour non reconnu : " + result.getClass().getName());
         }
+    }
+
+    private Object[] buildMethodArguments(Method method, HttpServletRequest req) throws Exception {
+        Parameter[] parameters = method.getParameters();
+        Object[] args = new Object[parameters.length];
+
+        Paranamer paranamer = new BytecodeReadingParanamer();
+        String[] paramNames = paranamer.lookupParameterNames(method, false);
+
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter param = parameters[i];
+            String name = null;
+
+            if (param.isAnnotationPresent(RequestParam.class)) {
+                name = param.getAnnotation(RequestParam.class).value();
+            } else if (paramNames != null && i < paramNames.length) {
+                name = paramNames[i];
+            } else {
+                throw new IllegalArgumentException("Nom du paramètre introuvable pour le paramètre #" + i);
+            }
+
+            String value = req.getParameter(name);
+            if (value == null) {
+                throw new IllegalArgumentException("Paramètre '" + name + "' manquant dans la requête");
+            }
+
+            args[i] = ConvertUtil.convertValue(value, param.getType());
+        }
+
+        return args;
     }
 }

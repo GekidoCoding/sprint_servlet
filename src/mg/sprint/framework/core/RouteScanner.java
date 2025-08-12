@@ -26,6 +26,9 @@ public class RouteScanner {
                 }
             }
         }
+        for (Class<?> cls : classes) {
+            System.out.println("[DEBUG] Classe trouvée : " + cls.getName());
+        }
 
         return classes;
     }
