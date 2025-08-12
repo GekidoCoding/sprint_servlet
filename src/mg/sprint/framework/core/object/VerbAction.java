@@ -1,8 +1,8 @@
 package mg.sprint.framework.core.object;
 
 public class VerbAction {
-    private final String verb;       // "GET" ou "POST"
-    private final String methodName; // nom de la méthode
+    private final String verb;
+    private final String methodName;
 
     public VerbAction(String verb, String methodName) {
         this.verb = verb;
