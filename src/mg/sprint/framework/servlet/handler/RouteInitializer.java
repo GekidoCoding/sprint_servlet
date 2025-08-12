@@ -1,7 +1,9 @@
 package mg.sprint.framework.servlet.handler;
 
+import mg.sprint.framework.annotation.auth.AuthController;
 import mg.sprint.framework.annotation.auth.AuthMethod;
 import mg.sprint.framework.annotation.auth.ClassLevel;
+import mg.sprint.framework.annotation.controller.BaseUrl;
 import mg.sprint.framework.annotation.controller.Controller;
 import mg.sprint.framework.annotation.http.Get;
 import mg.sprint.framework.annotation.http.Post;
@@ -42,6 +44,10 @@ public class RouteInitializer {
         for (Class<?> cls : classes) {
             if (cls.isAnnotationPresent(Controller.class)) {
                 processControllerClass(cls, routes, routeValidator);
+            } else if (cls.isAnnotationPresent(AuthController.class)) {
+                throw new ServletException(
+                    "La classe " + cls.getName() + " utilise @AuthController sans @Controller"
+                );
             }
         }
 
@@ -50,9 +56,29 @@ public class RouteInitializer {
 
     private void processControllerClass(Class<?> cls, Map<String, Mapping> routes,
                                        RouteValidator routeValidator) throws ServletException {
+
+
+        // Vérifier si @AuthController est présent et récupérer son niveau
+        int authControllerLevel = -1;
+        if (cls.isAnnotationPresent(AuthController.class)) {
+            authControllerLevel = cls.getAnnotation(AuthController.class).level();
+            if (!validLevels.contains(authControllerLevel)) {
+                throw new ServletException(
+                    "Niveau d'autorisation " + authControllerLevel + " de @AuthController dans la classe " +
+                    cls.getName() + " n'est défini dans aucune classe modèle"
+                );
+            }
+        }
+
+        String index_path="";
+        if(cls.isAnnotationPresent(BaseUrl.class) ){
+            index_path= cls.getAnnotation(BaseUrl.class).path() ;
+        }
         for (Method method : cls.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Url.class)) {
-                String url = method.getAnnotation(Url.class).path();
+                String url = index_path+method.getAnnotation(Url.class).path();
+                
+
                 String verb = determineHttpVerb(method);
 
                 // Valider le niveau de @AuthMethod
@@ -68,7 +94,7 @@ public class RouteInitializer {
 
                 routeValidator.validateRoute(url, verb);
 
-                Mapping mapping = routes.getOrDefault(url, new Mapping(cls, method));
+                Mapping mapping = routes.getOrDefault(url, new Mapping(cls, method, authControllerLevel));
                 mapping.addVerbAction(verb, method.getName());
                 routes.put(url, mapping);
                 RouteRegistry.register(url, mapping);

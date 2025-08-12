@@ -10,9 +10,23 @@ import mg.sprint.framework.annotation.http.Post;
 public class Mapping {
     private Class<?> controllerClass;
     private List<VerbAction> verbActions = new ArrayList<>();
+    private final int controllerAuthLevel; // Nouveau champ pour le niveau de @AuthController
 
     public Mapping(Class<?> controllerClass, Method method) {
         this.controllerClass = controllerClass;
+        this.controllerAuthLevel = -1; // Valeur par défaut : pas de @AuthController
+        String verb = "GET";
+        if (method.isAnnotationPresent(Post.class)) {
+            verb = "POST";
+        } else if (method.isAnnotationPresent(Get.class)) {
+            verb = "GET";
+        }
+        this.verbActions.add(new VerbAction(verb, method.getName()));
+    }
+
+    public Mapping(Class<?> controllerClass, Method method, int controllerAuthLevel) {
+        this.controllerClass = controllerClass;
+        this.controllerAuthLevel = controllerAuthLevel;
         String verb = "GET";
         if (method.isAnnotationPresent(Post.class)) {
             verb = "POST";
@@ -46,5 +60,9 @@ public class Mapping {
             }
         }
         throw new NoSuchMethodException("Méthode non trouvée pour le verbe HTTP : " + verb);
+    }
+
+    public int getControllerAuthLevel() {
+        return controllerAuthLevel;
     }
 }

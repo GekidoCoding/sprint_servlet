@@ -24,7 +24,6 @@ public class RequestHandler {
     private final SessionManager sessionManager;
     private  String authKey;
 
-
     public RequestHandler(Map<String, Mapping> routes) {
         this.routes = routes;
         this.argumentResolver = new ArgumentResolver();
@@ -53,7 +52,7 @@ public class RequestHandler {
         sessionManager.updatePreviousUrl(req, path);
 
         Method method = getMethodForRequest(mapping, req);
-        checkAuthorization(method, req);
+        checkAuthorization(method, mapping, req);
 
         Object controllerInstance = createControllerInstance(mapping);
 
@@ -71,10 +70,22 @@ public class RequestHandler {
         responseHandler.handleResponse(result, isRestAPI, req, resp);
     }
 
-    private void checkAuthorization(Method method, HttpServletRequest req) throws UnauthorizedException {
-       
-        if (method.isAnnotationPresent(AuthMethod.class)) {
-            int requiredLevel = method.getAnnotation(AuthMethod.class).level();
+    private void checkAuthorization(Method method, Mapping mapping, HttpServletRequest req) throws UnauthorizedException {
+        if (method.isSynthetic()) {
+            return; // Skip synthetic methods to avoid IllegalAccessException
+        }
+        // Récupérer le niveau de @AuthController
+        int authControllerLevel = mapping.getControllerAuthLevel();
+        // Récupérer le niveau de @AuthMethod
+        int authMethodLevel = method.isAnnotationPresent(AuthMethod.class) 
+            ? method.getAnnotation(AuthMethod.class).level() 
+            : -1;
+
+        // Prendre le niveau maximum entre @AuthController et @AuthMethod
+        int requiredLevel = Math.max(authControllerLevel, authMethodLevel);
+
+        // Si un niveau est requis
+        if (requiredLevel >= 0) {
             Integer userLevel = (Integer) req.getSession().getAttribute(authKey);
 
             if (userLevel == null || userLevel < requiredLevel) {

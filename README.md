@@ -158,3 +158,23 @@
   - Journalisation : DEBUG pour les vérifications, ERROR pour les refus.
 - **Défis relevés** : Vérifications basées sur la session.
 - **Test** : Accès avec/sans niveau suffisant.
+
+### Sprint 16 : Authentification (Classe)
+- **Objectif** : Sécuriser les classes/modèles.
+- **Implémentations clés** :
+  - Ajout de `@AuthController(level)`, `@ClassLevel(value)`.
+  - Dans `RouteInitializer`, scan des modèles pour les niveaux, stockage dans `validLevels`, validation des niveaux des contrôleurs/méthodes.
+  - Dans `Mapping`, stockage de `controllerAuthLevel` ; vérification du max entre classe/méthode.
+  - Journalisation : DEBUG pour la validation des niveaux.
+- **Défis relevés** : Validation inter-packages.
+- **Test** : Niveaux invalides levant des exceptions à l'init.
+
+### Sprint 17 : Utilitaires
+- **Objectif** : Fonctionnalités d'aide.
+- **Implémentations clés** :
+  - Ajout de `@BaseUrl`, concaténé dans `RouteInitializer`.
+  - Création de `StringUtil` avec méthodes comme `removeLastAt`, `addInBeginIfDont` (utilisées en interne).
+  - Ajout de `ConvertUtil` pour les conversions de types.
+  - Journalisation : TRACE pour les appels d'utilitaires.
+- **Défis relevés** : Manipulations de chaînes pour URLs/params.
+- **Test** : URLs de base dans les routes.
