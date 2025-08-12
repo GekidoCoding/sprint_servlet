@@ -139,3 +139,13 @@
   - Journalisation : WARN pour les échecs.
 - **Défis relevés** : Correspondance regex/motifs.
 - **Test** : Données invalides levant des exceptions.
+
+### Sprint 14 : Validation (v2)
+- **Objectif** : Validation sans exception.
+- **Implémentations clés** :
+  - Création de `ValidationManager` avec `addError(field, msg)`, `addValue(field, val)`, `hasErrors()`.
+  - Mise à jour de `ValidationUtil` pour remplir le manager au lieu de lever des exceptions.
+  - Dans `RequestHandler`, injection du manager, vérification des erreurs, ajout à la requête comme `error_field`, transfert à l'URL précédente.
+  - Journalisation : DEBUG pour les erreurs/valeurs ajoutées.
+- **Défis relevés** : Collecte/affichage des erreurs sans arrêt.
+- **Test** : Formulaires avec erreurs affichées dans la vue.
