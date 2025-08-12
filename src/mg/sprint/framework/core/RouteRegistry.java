@@ -10,11 +10,7 @@ public class RouteRegistry {
         routes.put(path, mapping);
     }
 
-    public static Mapping getMapping(String path) {
+    public static Mapping get(String path) {
         return routes.get(path);
     }
-
-    public static Map<String, Mapping> getAllMappings() {
-        return routes;
-    }
-}
+} 

@@ -52,3 +52,13 @@
   - Journalisation : TRACE pour les données ajoutées, INFO pour les transferts.
 - **Défis relevés** : Différenciation entre les transferts de vue et les réponses directes.
 - **Test** : Retour de `ModelView` avec données ; vérification que la JSP reçoit les attributs.
+
+### Sprint 5 : Gestion d'exceptions
+- **Objectif** : Gestion robuste des erreurs.
+- **Implémentations clés** :
+  - Création de la classe `Error` avec `displayErrorPage(resp, e)` : Définit le type de contenu, détermine le code/titre d'erreur selon le type d'exception (par exemple, 404 pour une Exception générale avec "URL non trouvée"), écrit une page HTML avec des boutons.
+  - Dans `FrontController.handleRequest()`, capture de toutes les exceptions et appel de l'affichage d'erreur.
+  - Ajout des classes `UnauthorizedException` et `ValidationException`.
+  - Journalisation : ERROR pour les exceptions capturées avec traces.
+- **Défis relevés** : Pages d'erreur personnalisées sans JSP ; messages adaptés à l'i18n.
+- **Test** : Induction d'erreurs 404/500 ; vérification de la sortie HTML.
