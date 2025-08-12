@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletResponse;
 import mg.sprint.framework.annotations.Controller;
 import mg.sprint.framework.annotations.Route;
 import mg.sprint.framework.core.Mapping;
+import mg.sprint.framework.core.ModelView;
 import mg.sprint.framework.core.RouteRegistry;
 import mg.sprint.framework.core.RouteScanner;
 
@@ -55,30 +56,57 @@ public class FrontController extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        processRequest(req, resp);
+    }
 
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        processRequest(req, resp);
+    }
+
+    private void processRequest(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getRequestURI().substring(req.getContextPath().length());
-        System.out.println("current path->"+path);
 
-        if (path == null || path.isEmpty()) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Path vide");
-            return;
-        }
+        Mapping mapping = RouteRegistry.getMapping(path);
 
-        Mapping mapping = routes.get(path); // utilisation de la copie locale
         if (mapping == null) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Route non trouvée : " + path);
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            resp.getWriter().write("404 - Route not found for " + path);
             return;
         }
 
         try {
-            Object controller = mapping.controllerClass.getDeclaredConstructor().newInstance();
-            Object result = mapping.method.invoke(controller);
-            resp.setContentType("text/plain");
-            resp.getWriter().write(result.toString());
+            Object controllerInstance = mapping.controllerClass.getDeclaredConstructor().newInstance();
+            Object result = mapping.method.invoke(controllerInstance);
+
+            if (result == null) {
+                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                return;
+            }
+
+            if (result instanceof String) {
+                resp.setContentType("text/plain;charset=UTF-8");
+                resp.getWriter().write(result.toString());
+
+            } else if (result instanceof ModelView) {
+                ModelView mv = (ModelView)result;
+                for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
+                    req.setAttribute(entry.getKey(), entry.getValue());
+                }
+                // Dispatch vers la vue (jsp)
+                req.getRequestDispatcher(mv.getUrl()).forward(req, resp);
+
+            } else {
+                resp.setContentType("text/plain;charset=UTF-8");
+                resp.getWriter().write("Méthode de retour non reconnue");
+            }
+
         } catch (Exception e) {
-            throw new ServletException("Erreur lors du traitement de la route : " + path, e);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().write("500 - Internal Server Error\n");
+            e.printStackTrace(resp.getWriter());
         }
     }
+
 }
