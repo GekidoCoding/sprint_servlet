@@ -1,62 +1,77 @@
 package mg.sprint.framework.core.manager;
 
-
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ValidationManager {
-    private static final ValidationManager instance = new ValidationManager();
-
-    private final Map<String, String> errors = new HashMap<>();
-    private final Map<String, String> values = new HashMap<>();
-
-    // Constructeur privé pour singleton
-    private ValidationManager() {}
-
-    // Accès au singleton
-    public static ValidationManager getInstance() {
-        return instance;
+    private Map<String, List<String>> fieldErrors;
+    private Map<String, String> fieldValues;
+    private static final String ERRORS_SESSION_KEY = "validation_errors";
+    private static final String VALUES_SESSION_KEY = "validation_values";
+    
+    public ValidationManager() {
+        this.fieldErrors = new HashMap<>();
+        this.fieldValues = new HashMap<>();
     }
-
-    // Ajouter une erreur
-    public void addError(String inputName, String message) {
-        errors.put(inputName, message);
+    
+    public void addError(String fieldName, String errorMessage) {
+        fieldErrors.computeIfAbsent(fieldName, k -> new ArrayList<>()).add(errorMessage);
     }
-
-    // Ajouter une valeur valide
-    public void addValue(String inputName, String value) {
-        values.put(inputName, value);
+    
+    public void addValue(String fieldName, String value) {
+        fieldValues.put(fieldName, value);
     }
-
-    // Obtenir les erreurs
-    public Map<String, String> getErrors() {
-        return errors;
-    }
-
-    // Obtenir les valeurs valides
-    public Map<String, String> getValues() {
-        return values;
-    }
-
-    // Obtenir une erreur précise
-    public String getError(String inputName) {
-        return errors.get(inputName);
-    }
-
-    // Obtenir une valeur précise
-    public String getValue(String inputName) {
-        return values.get(inputName);
-    }
-
-    // Nettoyer tout
-    public void clear() {
-        errors.clear();
-        values.clear();
-    }
-
-    // Vérifie s’il y a des erreurs
+    
     public boolean hasErrors() {
-        return !errors.isEmpty();
+        return !fieldErrors.isEmpty();
     }
+    
+    public Map<String, List<String>> getFieldErrors() {
+        return fieldErrors;
+    }
+    
+    public Map<String, String> getFieldValues() {
+        return fieldValues;
+    }
+    
+    public List<String> getErrors(String fieldName) {
+        return fieldErrors.getOrDefault(fieldName, new ArrayList<>());
+    }
+    
+    public String getValue(String fieldName) {
+        return fieldValues.getOrDefault(fieldName, "");
+    }
+    
+    public void clear() {
+        fieldErrors.clear();
+        fieldValues.clear();
+    }
+    
+    public void storeInSession(javax.servlet.http.HttpSession session) {
+        session.setAttribute(ERRORS_SESSION_KEY, fieldErrors);
+        session.setAttribute(VALUES_SESSION_KEY, fieldValues);
+    }
+    
+    @SuppressWarnings("unchecked")
+    public static ValidationManager getFromSession(javax.servlet.http.HttpSession session) {
+        ValidationManager manager = new ValidationManager();
+        
+        Map<String, List<String>> errors = (Map<String, List<String>>) session.getAttribute(ERRORS_SESSION_KEY);
+        Map<String, String> values = (Map<String, String>) session.getAttribute(VALUES_SESSION_KEY);
+        
+        if (errors != null) {
+            manager.fieldErrors = errors;
+        }
+        if (values != null) {
+            manager.fieldValues = values;
+        }
+        
+        return manager;
+    }
+    
+    public static void clearFromSession(javax.servlet.http.HttpSession session) {
+        session.removeAttribute(ERRORS_SESSION_KEY);
+        session.removeAttribute(VALUES_SESSION_KEY);
+    }
+    
+
 }

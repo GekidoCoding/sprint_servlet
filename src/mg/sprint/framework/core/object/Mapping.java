@@ -4,8 +4,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import mg.sprint.framework.annotations.http.Get;
-import mg.sprint.framework.annotations.http.Post;
+import mg.sprint.framework.annotation.http.Get;
+import mg.sprint.framework.annotation.http.Post;
 
 public class Mapping {
     private Class<?> controllerClass;
