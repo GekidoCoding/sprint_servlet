@@ -4,20 +4,22 @@ import com.google.gson.Gson;
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
 
-import mg.sprint.framework.annotations.Controller;
-import mg.sprint.framework.annotations.Get;
-import mg.sprint.framework.annotations.Post;
-import mg.sprint.framework.annotations.RequestField;
-import mg.sprint.framework.annotations.RequestObject;
-import mg.sprint.framework.annotations.RequestParam;
-import mg.sprint.framework.annotations.RestAPI;
-import mg.sprint.framework.annotations.Url;
-import mg.sprint.framework.core.Mapping;
-import mg.sprint.framework.core.ModelView;
-import mg.sprint.framework.core.RouteRegistry;
-import mg.sprint.framework.core.RouteScanner;
+import mg.sprint.framework.annotations.arg.RequestObject;
+import mg.sprint.framework.annotations.arg.RequestParam;
+import mg.sprint.framework.annotations.controller.Controller;
+import mg.sprint.framework.annotations.controller.RestAPI;
+import mg.sprint.framework.annotations.field.FormName;
+import mg.sprint.framework.annotations.http.Get;
+import mg.sprint.framework.annotations.http.Post;
+import mg.sprint.framework.annotations.method.Url;
+import mg.sprint.framework.core.object.Mapping;
+import mg.sprint.framework.core.object.ModelView;
+import mg.sprint.framework.core.object.MySession;
+import mg.sprint.framework.core.route.RouteRegistry;
+import mg.sprint.framework.core.route.RouteScanner;
 import mg.sprint.framework.page.Error;
 import mg.sprint.framework.utils.ConvertUtil;
+import mg.sprint.framework.utils.ValidationUtil;
 
 import javax.servlet.*;
 import javax.servlet.annotation.MultipartConfig;
@@ -91,6 +93,7 @@ public class FrontController extends HttpServlet {
         try {
             processRequest(req, resp);
         } catch (Exception e) {
+             e.printStackTrace();
             new Error().displayErrorPage(resp, e);
         }
     }
@@ -101,6 +104,7 @@ public class FrontController extends HttpServlet {
         try {
             processRequest(req, resp);
         } catch (Exception e) {
+            e.printStackTrace();
             new Error().displayErrorPage(resp, e);
         }
     }
@@ -122,6 +126,7 @@ public class FrontController extends HttpServlet {
         try {
             method = mapping.getMethodByVerb(httpMethod);
         } catch (NoSuchMethodException e) {
+             e.printStackTrace();
             new Error().displayErrorPage(resp, new Exception("Erreur 405 : Méthode HTTP non autorisée pour cette URL"));
             return;
         }
@@ -171,23 +176,34 @@ public class FrontController extends HttpServlet {
         for (int i = 0; i < parameters.length; i++) {
             Parameter param = parameters[i];
 
-            if (param.getType().equals(mg.sprint.framework.session.MySession.class)) {
-                args[i] = new mg.sprint.framework.session.MySession(req.getSession());
+            if (param.getType().equals(MySession.class)) {
+                args[i] = new MySession(req.getSession());
             } else if (param.isAnnotationPresent(RequestObject.class)) {
+                RequestObject requestObjectAnn = param.getAnnotation(RequestObject.class);
+                String prefix = requestObjectAnn.name();  
+
                 Object obj = param.getType().getDeclaredConstructor().newInstance();
+
                 for (Field field : obj.getClass().getDeclaredFields()) {
                     String fieldName = field.getName();
-                    if (field.isAnnotationPresent(RequestField.class)) {
-                        fieldName = field.getAnnotation(RequestField.class).value();
+
+                    if (field.isAnnotationPresent(FormName.class)) {
+                        fieldName = field.getAnnotation(FormName.class).value();
                     }
-                    String value = req.getParameter(fieldName);
-                    if (value != null) {
+
+                    // Cherche la valeur dans les paramètres avec le préfixe + "." + fieldName
+                    String paramValue = req.getParameter(prefix + "." + fieldName);
+
+                    if (paramValue != null) {
                         field.setAccessible(true);
-                        field.set(obj, ConvertUtil.convertValue(value, field.getType()));
+                        field.set(obj, ConvertUtil.convertValue(paramValue, field.getType()));
                     }
                 }
+                ValidationUtil.validate(obj);
+                
                 args[i] = obj;
-            } else if (param.getType().equals(Part.class)) {
+            }
+            else if (param.getType().equals(Part.class)) {
                 String name = null;
 
                 if (param.isAnnotationPresent(RequestParam.class)) {
