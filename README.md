@@ -31,3 +31,14 @@
   - Journalisation : INFO pour chaque route enregistrée avec chemin, contrôleur, verbe.
 - **Défis relevés** : Support de plusieurs méthodes par URL (via verbes) ; prévention des enregistrements en double.
 - **Test** : Vérification que `RouteRegistry` contient les mappings corrects.
+
+### Sprint 3 : Exécution dynamique
+- **Objectif** : Invoquer les méthodes des contrôleurs à l'exécution.
+- **Implémentations clés** :
+  - Dans `RequestHandler.processRequest()`, extraction du chemin de la requête, récupération du `Mapping` depuis `RouteRegistry`, obtention de la méthode via `mapping.getMethodByVerb(req.getMethod())`.
+  - Instanciation du contrôleur avec `mapping.getControllerClass().getDeclaredConstructor().newInstance()`.
+  - Invocation de la méthode avec `method.invoke(controllerInstance, args)` (args initialement vide).
+  - Gestion de `NoSuchMethodException` pour les erreurs 405.
+  - Journalisation : DEBUG pour l'invocation de méthode, ERROR pour les méthodes manquantes.
+- **Défis relevés** : Invocation basée sur la réflexion ; gestion basique des arguments.
+- **Test** : Appel de méthodes simples retournant des chaînes ; vérification de la sortie.
