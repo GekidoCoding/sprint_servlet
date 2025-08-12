@@ -149,3 +149,22 @@
   - Journalisation : DEBUG pour les erreurs/valeurs ajoutées.
 - **Défis relevés** : Collecte/affichage des erreurs sans arrêt.
 - **Test** : Formulaires avec erreurs affichées dans la vue.
+
+### Sprint 15 : Authentification (Méthode)
+- **Objectif** : Sécuriser les méthodes.
+- **Implémentations clés** :
+  - Ajout de `@AuthMethod(level)`.
+  - Dans `RequestHandler.checkAuthorization()`, obtention du niveau de la méthode, comparaison avec `userLevel` de la session, levée de `UnauthorizedException` si insuffisant.
+  - Journalisation : DEBUG pour les vérifications, ERROR pour les refus.
+- **Défis relevés** : Vérifications basées sur la session.
+- **Test** : Accès avec/sans niveau suffisant.
+
+### Sprint 16 : Authentification (Classe)
+- **Objectif** : Sécuriser les classes/modèles.
+- **Implémentations clés** :
+  - Ajout de `@AuthController(level)`, `@ClassLevel(value)`.
+  - Dans `RouteInitializer`, scan des modèles pour les niveaux, stockage dans `validLevels`, validation des niveaux des contrôleurs/méthodes.
+  - Dans `Mapping`, stockage de `controllerAuthLevel` ; vérification du max entre classe/méthode.
+  - Journalisation : DEBUG pour la validation des niveaux.
+- **Défis relevés** : Validation inter-packages.
+- **Test** : Niveaux invalides levant des exceptions à l'init.
