@@ -1,4 +1,4 @@
-package mg.sprint.framework.annotations;
+package mg.sprint.framework.annotations.http;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,5 +7,5 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Get {
+public @interface Post {
 }

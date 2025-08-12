@@ -1,11 +1,11 @@
-package mg.sprint.framework.core;
+package mg.sprint.framework.core.object;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import mg.sprint.framework.annotations.Get;
-import mg.sprint.framework.annotations.Post;
+import mg.sprint.framework.annotations.http.Get;
+import mg.sprint.framework.annotations.http.Post;
 
 public class Mapping {
     private Class<?> controllerClass;

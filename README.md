@@ -119,3 +119,23 @@
   - Journalisation : INFO pour les affichages de pages d'erreur.
 - **Défis relevés** : Pas de CSS externe ; interactivité basique.
 - **Test** : Visualisation des pages d'erreur.
+
+### Sprint 12 : Upload de fichier
+- **Objectif** : Gérer les fichiers.
+- **Implémentations clés** :
+  - `@MultipartConfig` sur `FrontController`.
+  - Dans `ArgumentResolver`, si le paramètre est `Part`, obtention de `req.getPart(name)`.
+  - Levée d'une exception si manquant.
+  - Journalisation : DEBUG pour les parties de fichier.
+- **Défis relevés** : Requêtes multipart.
+- **Test** : Upload de fichiers via formulaires.
+
+### Sprint 13 : Validation (v1)
+- **Objectif** : Validation basique des champs.
+- **Implémentations clés** :
+  - Ajout des annotations comme `@Required`, `@Numeric`, `@Email`, `@DateFormat`.
+  - Dans `ValidationUtil.validate()`, vérification de chaque annotation, levée de `ValidationException` en cas d'échec.
+  - Intégration dans `ArgumentResolver` pour `@RequestObject`.
+  - Journalisation : WARN pour les échecs.
+- **Défis relevés** : Correspondance regex/motifs.
+- **Test** : Données invalides levant des exceptions.

@@ -1,4 +1,4 @@
-package mg.sprint.framework.core;
+package mg.sprint.framework.core.object;
 
 public class VerbAction {
     private final String verb;       // "GET" ou "POST"
